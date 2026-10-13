@@ -72,6 +72,9 @@ ul {
 }
 
 li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 13px 16px;
   border-bottom: 1px solid #eee;
   font-size: 14px;
@@ -86,9 +89,23 @@ li:hover {
   background: #f7f9fc;
 }
 
-li::before {
-  content: "•";
-  color: #2563eb;
-  font-weight: bold;
-  margin-right: 10px;
+li input[type="checkbox"] {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+}
+
+li span {
+  flex: 1;
+}
+
+.concluida {
+  text-decoration: line-through;
+  color: #888;
+}
+
+.btn-editar {
+  padding: 5px 12px;
+  font-size: 12px;
 }
