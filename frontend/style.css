@@ -7,6 +7,10 @@ body {
   background: #f2f4f7;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 h1 {
   font-size: 24px;
   margin-bottom: 24px;
@@ -37,6 +41,14 @@ input:focus {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
+select {
+  padding: 9px 12px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+  background: #fff;
+}
+
 button {
   padding: 9px 18px;
   background: #2563eb;
@@ -59,6 +71,67 @@ button:hover {
   font-weight: bold;
   min-height: 18px;
   margin-bottom: 4px;
+}
+
+/* topo com nome do usuário e botão sair */
+.topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.topo h1 {
+  margin: 0;
+}
+
+.usuario {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #555;
+}
+
+.btn-sair {
+  padding: 5px 12px;
+  font-size: 12px;
+  background: #6b7280;
+}
+
+.btn-sair:hover {
+  background: #4b5563;
+}
+
+/* filtros da lista */
+.filtros {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* telas de login e cadastro */
+.form-auth {
+  flex-direction: column;
+}
+
+.form-auth h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  color: #1a1a2e;
+}
+
+.form-auth input {
+  flex: none;
+}
+
+.troca {
+  font-size: 13px;
+  text-align: center;
+}
+
+.troca a {
+  color: #2563eb;
 }
 
 ul {
@@ -100,6 +173,11 @@ li span {
   flex: 1;
 }
 
+li.vazio {
+  justify-content: center;
+  color: #888;
+}
+
 .concluida {
   text-decoration: line-through;
   color: #888;
@@ -108,4 +186,14 @@ li span {
 .btn-editar {
   padding: 5px 12px;
   font-size: 12px;
+}
+
+.btn-excluir {
+  padding: 5px 12px;
+  font-size: 12px;
+  background: #dc2626;
+}
+
+.btn-excluir:hover {
+  background: #b91c1c;
 }

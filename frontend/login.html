@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entrar - Lista de Tarefas</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <h1>Lista de tarefas</h1>
+
+  <form id="formLogin" class="form-auth">
+    <h2>Entrar</h2>
+    <input type="email" id="loginEmail" placeholder="E-mail" required>
+    <input type="password" id="loginSenha" placeholder="Senha" required>
+    <button type="submit">Entrar</button>
+  </form>
+
+  <form id="formCadastro" class="form-auth" hidden>
+    <h2>Criar conta</h2>
+    <input type="text" id="cadNome" placeholder="Nome" required>
+    <input type="email" id="cadEmail" placeholder="E-mail" required>
+    <input type="password" id="cadSenha" placeholder="Senha (mínimo 6 caracteres)" required>
+    <button type="submit">Cadastrar</button>
+  </form>
+
+  <p id="mensagem"></p>
+
+  <p class="troca" id="trocaLogin">Não tem conta? <a href="#" id="irCadastro">Cadastre-se</a></p>
+  <p class="troca" id="trocaCadastro" hidden>Já tem conta? <a href="#" id="irLogin">Entrar</a></p>
+
+  <script src="login.js"></script>
+</body>
+</html>

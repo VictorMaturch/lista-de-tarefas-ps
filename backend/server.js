@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const crypto = require('node:crypto');
 const { DatabaseSync } = require('node:sqlite');
 
 const app = express();
@@ -16,37 +17,163 @@ db.exec(`
   )
 `);
 
-// AC2: adiciona a coluna "concluida" se o banco antigo ainda não tiver
+// AC2 e AC4: adiciona colunas novas se o banco antigo ainda não tiver
 const colunas = db.prepare('PRAGMA table_info(tarefas)').all();
-const temConcluida = colunas.some(function (c) { return c.name === 'concluida'; });
-if (!temConcluida) {
+if (!colunas.some(function (c) { return c.name === 'concluida'; })) {
   db.exec('ALTER TABLE tarefas ADD COLUMN concluida INTEGER NOT NULL DEFAULT 0');
 }
+if (!colunas.some(function (c) { return c.name === 'usuario_id'; })) {
+  db.exec('ALTER TABLE tarefas ADD COLUMN usuario_id INTEGER');
+}
 
-// lista todas as tarefas cadastradas
-app.get('/tarefas', (req, res) => {
-  const tarefas = db.prepare('SELECT * FROM tarefas ORDER BY id DESC').all();
+// AC4: tabelas de usuários e de sessões (login)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS usuarios (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    senha_hash TEXT NOT NULL,
+    criado_em TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS sessoes (
+    token TEXT PRIMARY KEY,
+    usuario_id INTEGER NOT NULL,
+    criada_em TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+`);
+
+// ---------- funções de senha (a senha nunca é salva em texto puro) ----------
+function gerarHash(senha) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(senha, salt, 64).toString('hex');
+  return salt + ':' + hash;
+}
+
+function conferirSenha(senha, salvo) {
+  const partes = salvo.split(':');
+  if (partes.length !== 2) return false;
+  const esperado = Buffer.from(partes[1], 'hex');
+  const calculado = crypto.scryptSync(senha, partes[0], 64);
+  return crypto.timingSafeEqual(calculado, esperado);
+}
+
+// ---------- AC4: cadastro, login e logout ----------
+app.post('/cadastro', (req, res) => {
+  const nome = String(req.body.nome || '').trim();
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const senha = String(req.body.senha || '');
+
+  if (!nome || !email || !senha) {
+    return res.status(400).json({ erro: 'Preencha nome, e-mail e senha' });
+  }
+  if (!email.includes('@')) {
+    return res.status(400).json({ erro: 'E-mail inválido' });
+  }
+  if (senha.length < 6) {
+    return res.status(400).json({ erro: 'A senha precisa ter pelo menos 6 caracteres' });
+  }
+
+  const existe = db.prepare('SELECT id FROM usuarios WHERE email = ?').get(email);
+  if (existe) {
+    return res.status(409).json({ erro: 'Já existe uma conta com esse e-mail' });
+  }
+
+  const resultado = db
+    .prepare('INSERT INTO usuarios (nome, email, senha_hash) VALUES (?, ?, ?)')
+    .run(nome, email, gerarHash(senha));
+
+  res.status(201).json({ id: Number(resultado.lastInsertRowid), nome: nome, email: email });
+});
+
+app.post('/login', (req, res) => {
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const senha = String(req.body.senha || '');
+
+  const usuario = db.prepare('SELECT * FROM usuarios WHERE email = ?').get(email);
+  if (!usuario || !conferirSenha(senha, usuario.senha_hash)) {
+    return res.status(401).json({ erro: 'E-mail ou senha incorretos' });
+  }
+
+  const token = crypto.randomBytes(32).toString('hex');
+  db.prepare('INSERT INTO sessoes (token, usuario_id) VALUES (?, ?)').run(token, usuario.id);
+
+  res.json({ token: token, nome: usuario.nome });
+});
+
+// verifica o token enviado no cabeçalho Authorization
+function autenticar(req, res, next) {
+  const cabecalho = req.headers.authorization || '';
+  const token = cabecalho.startsWith('Bearer ') ? cabecalho.slice(7) : '';
+
+  const usuario = token
+    ? db.prepare(
+        'SELECT u.id, u.nome FROM sessoes s JOIN usuarios u ON u.id = s.usuario_id WHERE s.token = ?'
+      ).get(token)
+    : undefined;
+
+  if (!usuario) {
+    return res.status(401).json({ erro: 'Faça login para continuar' });
+  }
+
+  req.usuario = usuario;
+  req.token = token;
+  next();
+}
+
+app.post('/logout', autenticar, (req, res) => {
+  db.prepare('DELETE FROM sessoes WHERE token = ?').run(req.token);
+  res.json({ mensagem: 'Logout realizado' });
+});
+
+// ---------- tarefas (agora cada usuário só enxerga as suas) ----------
+
+// lista as tarefas do usuário, com filtros: ?status=todas|pendentes|concluidas&busca=texto
+app.get('/tarefas', autenticar, (req, res) => {
+  const status = req.query.status;
+  const busca = String(req.query.busca || '').trim();
+
+  let sql = 'SELECT * FROM tarefas WHERE usuario_id = ?';
+  const parametros = [req.usuario.id];
+
+  if (status === 'pendentes') {
+    sql += ' AND concluida = 0';
+  } else if (status === 'concluidas') {
+    sql += ' AND concluida = 1';
+  }
+
+  if (busca) {
+    sql += ' AND texto LIKE ?';
+    parametros.push('%' + busca + '%');
+  }
+
+  sql += ' ORDER BY id DESC';
+
+  const tarefas = db.prepare(sql).all(...parametros);
   res.json(tarefas);
 });
 
 // cadastra uma nova tarefa
-app.post('/tarefas', (req, res) => {
+app.post('/tarefas', autenticar, (req, res) => {
   const texto = req.body.texto;
 
   if (!texto || texto.trim() === '') {
     return res.status(400).json({ erro: 'A tarefa precisa ter um texto' });
   }
 
-  const resultado = db.prepare('INSERT INTO tarefas (texto) VALUES (?)').run(texto.trim());
+  const resultado = db
+    .prepare('INSERT INTO tarefas (texto, usuario_id) VALUES (?, ?)')
+    .run(texto.trim(), req.usuario.id);
   const novaTarefa = db.prepare('SELECT * FROM tarefas WHERE id = ?').get(resultado.lastInsertRowid);
 
   res.status(201).json(novaTarefa);
 });
 
-// AC2: edita o texto e/ou marca como concluída
-app.put('/tarefas/:id', (req, res) => {
+// edita o texto e/ou marca como concluída
+app.put('/tarefas/:id', autenticar, (req, res) => {
   const id = Number(req.params.id);
-  const tarefa = db.prepare('SELECT * FROM tarefas WHERE id = ?').get(id);
+  const tarefa = db
+    .prepare('SELECT * FROM tarefas WHERE id = ? AND usuario_id = ?')
+    .get(id, req.usuario.id);
 
   if (!tarefa) {
     return res.status(404).json({ erro: 'Tarefa não encontrada' });
@@ -69,6 +196,21 @@ app.put('/tarefas/:id', (req, res) => {
 
   const atualizada = db.prepare('SELECT * FROM tarefas WHERE id = ?').get(id);
   res.json(atualizada);
+});
+
+// exclui uma tarefa
+app.delete('/tarefas/:id', autenticar, (req, res) => {
+  const id = Number(req.params.id);
+  const tarefa = db
+    .prepare('SELECT * FROM tarefas WHERE id = ? AND usuario_id = ?')
+    .get(id, req.usuario.id);
+
+  if (!tarefa) {
+    return res.status(404).json({ erro: 'Tarefa não encontrada' });
+  }
+
+  db.prepare('DELETE FROM tarefas WHERE id = ?').run(id);
+  res.json({ mensagem: 'Tarefa excluída' });
 });
 
 const PORTA = 3000;

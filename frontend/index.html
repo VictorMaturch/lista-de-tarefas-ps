@@ -8,12 +8,27 @@
 </head>
 <body>
 
-  <h1>Minha lista de tarefas</h1>
+  <div class="topo">
+    <h1>Minha lista de tarefas</h1>
+    <div class="usuario">
+      <span id="usuarioNome"></span>
+      <button id="btnSair" class="btn-sair">Sair</button>
+    </div>
+  </div>
 
   <form id="formTarefa">
     <input type="text" id="inputTarefa" placeholder="Digite uma tarefa" required>
     <button type="submit">Cadastrar</button>
   </form>
+
+  <div class="filtros">
+    <input type="text" id="filtroBusca" placeholder="Buscar tarefa...">
+    <select id="filtroStatus">
+      <option value="todas">Todas</option>
+      <option value="pendentes">Pendentes</option>
+      <option value="concluidas">Concluídas</option>
+    </select>
+  </div>
 
   <p id="mensagem"></p>
 
