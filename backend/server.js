@@ -17,7 +17,7 @@ db.exec(`
   )
 `);
 
-// AC2 e AC4: adiciona colunas novas se o banco antigo ainda não tiver
+// AC2 e AC3: adiciona colunas novas se o banco antigo ainda não tiver
 const colunas = db.prepare('PRAGMA table_info(tarefas)').all();
 if (!colunas.some(function (c) { return c.name === 'concluida'; })) {
   db.exec('ALTER TABLE tarefas ADD COLUMN concluida INTEGER NOT NULL DEFAULT 0');
@@ -26,7 +26,7 @@ if (!colunas.some(function (c) { return c.name === 'usuario_id'; })) {
   db.exec('ALTER TABLE tarefas ADD COLUMN usuario_id INTEGER');
 }
 
-// AC4: tabelas de usuários e de sessões (login)
+// AC3: tabelas de usuários e de sessões (login)
 db.exec(`
   CREATE TABLE IF NOT EXISTS usuarios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,7 +57,7 @@ function conferirSenha(senha, salvo) {
   return crypto.timingSafeEqual(calculado, esperado);
 }
 
-// ---------- AC4: cadastro, login e logout ----------
+// ---------- AC3: cadastro, login e logout ----------
 app.post('/cadastro', (req, res) => {
   const nome = String(req.body.nome || '').trim();
   const email = String(req.body.email || '').trim().toLowerCase();

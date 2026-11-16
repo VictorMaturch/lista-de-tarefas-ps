@@ -9,7 +9,7 @@ const filtroBusca = document.getElementById('filtroBusca');
 const filtroStatus = document.getElementById('filtroStatus');
 const btnSair = document.getElementById('btnSair');
 
-// AC4: só entra quem estiver logado
+// AC3: só entra quem estiver logado
 const token = localStorage.getItem('token');
 if (!token) {
   window.location.href = 'login.html';
@@ -77,7 +77,7 @@ async function excluirTarefa(id) {
 }
 
 async function carregarTarefas() {
-  // AC4: os filtros são enviados para o back-end na própria URL
+  // AC3: os filtros são enviados para o back-end na própria URL
   const parametros = new URLSearchParams({
     status: filtroStatus.value,
     busca: filtroBusca.value.trim()
