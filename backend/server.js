@@ -125,7 +125,59 @@ app.post('/logout', autenticar, (req, res) => {
   res.json({ mensagem: 'Logout realizado' });
 });
 
-// ---------- tarefas (agora cada usuário só enxerga as suas) ----------
+// ---------- AC4: perfil do usuário ----------
+
+// devolve os dados do usuário logado
+app.get('/perfil', autenticar, (req, res) => {
+  const usuario = db.prepare('SELECT id, nome, email FROM usuarios WHERE id = ?').get(req.usuario.id);
+  res.json(usuario);
+});
+
+// edita nome e e-mail
+app.put('/perfil', autenticar, (req, res) => {
+  const nome = String(req.body.nome || '').trim();
+  const email = String(req.body.email || '').trim().toLowerCase();
+
+  if (!nome || !email) {
+    return res.status(400).json({ erro: 'Preencha nome e e-mail' });
+  }
+  if (!email.includes('@')) {
+    return res.status(400).json({ erro: 'E-mail inválido' });
+  }
+
+  const outro = db.prepare('SELECT id FROM usuarios WHERE email = ? AND id != ?').get(email, req.usuario.id);
+  if (outro) {
+    return res.status(409).json({ erro: 'Já existe outra conta com esse e-mail' });
+  }
+
+  db.prepare('UPDATE usuarios SET nome = ?, email = ? WHERE id = ?').run(nome, email, req.usuario.id);
+  res.json({ id: req.usuario.id, nome: nome, email: email });
+});
+
+// troca a senha (exige a senha atual)
+app.put('/perfil/senha', autenticar, (req, res) => {
+  const senhaAtual = String(req.body.senhaAtual || '');
+  const novaSenha = String(req.body.novaSenha || '');
+
+  const usuario = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(req.usuario.id);
+  if (!conferirSenha(senhaAtual, usuario.senha_hash)) {
+    return res.status(400).json({ erro: 'A senha atual está incorreta' });
+  }
+  if (novaSenha.length < 6) {
+    return res.status(400).json({ erro: 'A nova senha precisa ter pelo menos 6 caracteres' });
+  }
+  if (novaSenha === senhaAtual) {
+    return res.status(400).json({ erro: 'A nova senha precisa ser diferente da atual' });
+  }
+
+  db.prepare('UPDATE usuarios SET senha_hash = ? WHERE id = ?').run(gerarHash(novaSenha), req.usuario.id);
+
+  // por segurança, encerra as outras sessões abertas desse usuário
+  db.prepare('DELETE FROM sessoes WHERE usuario_id = ? AND token != ?').run(req.usuario.id, req.token);
+
+  res.json({ mensagem: 'Senha alterada com sucesso' });
+  
+});// ---------- tarefas (agora cada usuário só enxerga as suas) ----------
 
 // lista as tarefas do usuário, com filtros: ?status=todas|pendentes|concluidas&busca=texto
 app.get('/tarefas', autenticar, (req, res) => {

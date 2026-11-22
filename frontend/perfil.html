@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu perfil - Lista de Tarefas</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="topo">
+    <h1>Meu perfil</h1>
+    <a href="index.html" class="link-perfil">Voltar para as tarefas</a>
+  </div>
+
+  <form id="formDados" class="form-auth">
+    <h2>Dados da conta</h2>
+    <label for="perfilNome">Nome</label>
+    <input type="text" id="perfilNome" required>
+    <label for="perfilEmail">E-mail</label>
+    <input type="email" id="perfilEmail" required>
+    <button type="submit">Salvar dados</button>
+  </form>
+
+  <form id="formSenha" class="form-auth">
+    <h2>Trocar senha</h2>
+    <label for="senhaAtual">Senha atual</label>
+    <input type="password" id="senhaAtual" required>
+    <label for="novaSenha">Nova senha (mínimo 6 caracteres)</label>
+    <input type="password" id="novaSenha" required>
+    <label for="confirmarSenha">Confirmar nova senha</label>
+    <input type="password" id="confirmarSenha" required>
+    <button type="submit">Trocar senha</button>
+  </form>
+
+  <p id="mensagem"></p>
+
+  <script src="perfil.js"></script>
+</body>
+</html>
